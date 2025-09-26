@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -11,9 +12,22 @@ from scheduler import reminder_scheduler
 
 app = FastAPI(title="Alerting & Notification Platform")
 
+# Configure CORS for production and development
+allowed_origins = [
+    "http://localhost:3000",  # Development
+]
+
+# Add environment-specific origins
+if os.getenv("FRONTEND_URL"):
+    allowed_origins.append(os.getenv("FRONTEND_URL"))
+
+# For production, allow all Render origins or use wildcard
+if os.getenv("RENDER"):
+    allowed_origins = ["*"]  # Allow all origins in production
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -407,4 +421,5 @@ async def trigger_reminders(db: Session = Depends(get_db)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
